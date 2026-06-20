@@ -1,0 +1,879 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AK MEDIA Payroll</title>
+<style>
+:root{--main:#2f5d36;--soft:#eaf6e6;--green:#b7d8ad;--yellow:#ffe14d;--red:#b3261e;--line:#d6d6d6}
+*{box-sizing:border-box}
+body{margin:0;background:#f4f6f8;color:#222;font-family:Tahoma,Arial,sans-serif;font-size:14px}
+header{background:var(--main);color:white;padding:14px 20px;display:flex;justify-content:space-between;align-items:center}
+header h1{font-size:20px;margin:0}.layout{display:grid;grid-template-columns:280px 1fr;min-height:calc(100vh - 55px)}
+aside{background:#fff;border-right:1px solid #ddd;padding:15px}.main{padding:18px}
+button,input,select,textarea{font-family:inherit;font-size:14px}
+button{border:0;border-radius:8px;padding:9px 12px;background:var(--main);color:white;cursor:pointer;margin:2px}
+button.secondary{background:#666}button.danger{background:var(--red)}button.yellow{background:var(--yellow);color:#111}
+.card{background:#fff;border:1px solid #ddd;border-radius:12px;padding:15px;margin-bottom:15px;box-shadow:0 1px 4px #0001}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+label{font-weight:bold;font-size:12px} input,select,textarea{width:100%;padding:8px;border:1px solid #bbb;border-radius:7px;margin-top:4px}
+table{border-collapse:collapse;width:100%;background:white}th,td{border:1px solid #ccc;padding:6px;text-align:center;vertical-align:middle}th{background:var(--green)}
+.small{font-size:12px;color:#555}.hidden{display:none}.red{color:var(--red);font-weight:bold}
+.emp{padding:9px;border:1px solid #ddd;border-radius:8px;margin-bottom:8px;cursor:pointer}.emp.active{background:var(--soft);border-color:var(--main)}
+.summary{display:flex;gap:10px;flex-wrap:wrap}.summary div{background:#f7f7f7;border:1px solid #ddd;border-radius:10px;padding:10px;min-width:145px}
+.payslip{max-width:820px;margin:auto;background:white;padding:22px;border:1px solid #111}.pay-head{display:flex;justify-content:space-between;gap:20px}
+.pay-title{text-align:center;font-weight:bold;font-size:19px}.paybox{display:grid;grid-template-columns:1fr 1fr;border:1px solid #111;margin-top:15px}
+.paybox>div{padding:10px;min-height:190px}.paybox>div:first-child{border-right:1px solid #111}.line{display:flex;justify-content:space-between;border-bottom:1px dotted #999;margin:7px 0}.right{text-align:right}.note{border-bottom:1px dotted #999;height:35px}
+@media print{header,aside,.no-print{display:none!important}.layout{display:block}.main{padding:0}.card{border:0;box-shadow:none}.payslip{border:0;max-width:none}}
+@media(max-width:900px){.layout{grid-template-columns:1fr}.grid,.grid3{grid-template-columns:1fr}aside{border-right:0}}
+
+.month-picker-wrap{position:relative}
+.month-display{width:100%;padding:8px;border:1px solid #bbb;border-radius:7px;background:#fff;cursor:pointer}
+.month-panel{position:absolute;z-index:99;background:#fff;border:1px solid #ddd;border-radius:10px;box-shadow:0 6px 18px #0002;padding:10px;width:225px;margin-top:5px}
+.month-panel.hidden{display:none}
+.month-year{display:flex;justify-content:space-between;align-items:center;background:#f1f1f1;padding:6px;border-radius:6px;margin-bottom:8px}
+.month-year button{padding:4px 8px;margin:0;border-radius:5px}
+.month-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.month-item{padding:7px 4px;border-radius:5px;text-align:center;cursor:pointer;border:1px solid transparent}
+.month-item:hover{background:#eee}
+.month-item.active{background:#333;color:#fff;border-color:#111}
+.month-actions{display:flex;justify-content:space-between;margin-top:10px;font-size:12px}
+.month-actions span{color:#06c;cursor:pointer}
+
+
+.locked-badge{display:inline-block;background:#b3261e;color:#fff;padding:4px 8px;border-radius:8px;font-size:12px;margin-left:6px}
+.locked-note{background:#fff3f3;border:1px solid #f1b0b7;color:#8a1c1c;padding:10px;border-radius:10px;margin:10px 0}
+
+.slip-section{margin-top:14px}
+.slip-section h3{margin:8px 0;font-size:15px;background:#f2f2f2;padding:7px;border-radius:6px}
+.slip-table{width:100%;border-collapse:collapse;margin-bottom:8px}
+.slip-table th,.slip-table td{border:1px solid #bbb;padding:7px;text-align:left}
+.slip-table th{background:#e7f0e3}
+.slip-table td:last-child,.slip-table th:last-child{text-align:right}
+
+.report-box{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:10px 0}
+.report-box div{background:#f7f7f7;border:1px solid #ddd;border-radius:10px;padding:10px}
+@media(max-width:900px){.report-box{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <h1>บริษัท เอเคมีเดีย จำกัด | โปรแกรมบันทึกเวลาและเงินเดือน</h1>
+  <div id="monthTitle"></div>
+</header>
+
+<div class="layout">
+<aside class="no-print">
+  <button onclick="showTab('company')">ตั้งค่าบริษัท</button>
+  <button onclick="showTab('emp')">ข้อมูลพนักงาน</button>
+  <button onclick="showTab('time')">บันทึกเวลา</button>
+  <button onclick="showTab('yearlyTime')">สรุปเวลา (รายปี)</button>
+  <button onclick="showTab('withdraw')">เบิกเงิน</button>
+  <button onclick="showTab('payroll')">สลิปเงินเดือน</button>
+  <button onclick="showTab('report')">รายงานรวม</button>
+  <hr>
+  <label>เดือนทำงาน</label>
+  <div class="month-picker-wrap">
+    <div id="monthDisplay" class="month-display" onclick="toggleMonthPanel()">มิถุนายน 2569</div>
+    <div id="monthPanel" class="month-panel hidden">
+      <div class="month-year">
+        <button onclick="changePickerYear(-1)">‹</button>
+        <b id="pickerYearText">2569</b>
+        <button onclick="changePickerYear(1)">›</button>
+      </div>
+      <div id="monthGrid" class="month-grid"></div>
+      <div class="month-actions">
+        <span onclick="clearMonthPanel()">Clear</span>
+        <span onclick="setThisMonth()">เดือนนี้</span>
+      </div>
+    </div>
+  </div>
+  <input type="month" id="monthPick" onchange="renderAll()" style="display:none">
+  <div class="small" id="monthEngText"></div>
+  <button style="width:100%;margin-top:8px" onclick="createMonthForAll()">สร้างตารางเวลาของเดือนนี้</button>
+  <div class="small">เลือกเดือนเองได้ ข้อมูลเวลา/เบิกเงิน/สลิปจะแยกตามเดือน</div>
+  <hr>
+  <div class="small">รายชื่อพนักงาน</div>
+  <div id="empList"></div>
+</aside>
+
+<main class="main">
+
+<section id="company" class="tab card hidden">
+<h2>ตั้งค่าบริษัท</h2>
+<div class="grid">
+  <div><label>ชื่อบริษัท</label><input id="companyName" value="บริษัท เอเคมีเดีย จำกัด"></div>
+  <div><label>เลขผู้เสียภาษี</label><input id="companyTax"></div>
+  <div><label>เบอร์โทร</label><input id="companyTel"></div>
+  <div><label>ที่อยู่</label><input id="companyAddress"></div>
+</div><br>
+<button onclick="saveCompany()">บันทึกข้อมูลบริษัท</button>
+</section>
+
+<section id="emp" class="tab card">
+<h2>ข้อมูลพนักงาน</h2>
+<div class="grid">
+  <div><label>ชื่อ-นามสกุล</label><input id="empName"></div>
+  <div><label>รหัสพนักงาน</label><input id="empCode"></div>
+  <div><label>ตำแหน่ง</label><input id="empPos"></div>
+  <div><label>แผนก</label>
+    <select id="empDept">
+      <option>แอดมิน</option>
+      <option>ประกอบ</option>
+      <option>กราฟิก</option>
+      <option>แมทชีน</option>
+      <option>ทีมช่าง</option>
+    </select>
+  </div>
+  <div><label>ประเภทค่าแรง</label><select id="salaryType" onchange="toggleSalaryFields()"><option value="monthly">รายเดือน</option><option value="daily">รายวัน</option></select></div>
+  <div><label>เงินเดือนรายเดือน</label><input id="monthlySalary" type="number" value="13000"></div>
+  <div><label>ค่าแรงรายวัน</label><input id="dailyRate" type="number" value="500"></div>
+  <div><label>รายวัน: ลาป่วยมีใบรับรองแพทย์</label>
+    <select id="dailySickCertPaid">
+      <option value="paid">จ่ายค่าแรง</option>
+      <option value="unpaid">ไม่จ่ายค่าแรง</option>
+    </select>
+    <div class="small">ใช้เฉพาะพนักงานรายวัน</div>
+  </div>
+  <div><label>เวลาเข้างาน (24 ชั่วโมง HH:mm)</label><input id="stdIn" type="text" pattern="[0-9]{2}:[0-9]{2}" placeholder="08:30" value="08:30"></div>
+  <div><label>เวลาเลิกงาน (24 ชั่วโมง HH:mm)</label><input id="stdOut" type="text" pattern="[0-9]{2}:[0-9]{2}" placeholder="08:30" value="17:30"></div>
+  <div>
+    <label>ประกันสังคม</label>
+    <select id="ssoEnabled">
+      <option value="yes">เข้าประกันสังคม 5% สูงสุด 750 บาท</option>
+      <option value="no">ไม่เข้าประกันสังคม</option>
+    </select>
+  </div>
+  <div><label>ค่าหักมาสาย / นาที</label><input id="lateRate" type="number" value="1"><div class="small">เช่น 1 = หัก 1 บาทต่อนาที</div></div>
+</div><br>
+<button onclick="saveEmployee()">บันทึกพนักงาน</button>
+<button class="secondary" onclick="clearEmpForm()">เพิ่มใหม่</button>
+<button class="danger" onclick="deleteEmployee()">ลบพนักงาน</button>
+</section>
+
+<section id="time" class="tab card hidden">
+<h2>บันทึกเวลาทำงาน</h2>
+<div class="small">เลือกเดือนด้านซ้ายก่อน แล้วกด “สร้างตารางเวลาของเดือนนี้” ระบบจะสร้างเวลา เข้า 08:30 เลิก 17:30 ให้พนักงานทั้งหมด | ลาป่วยมีใบรับรองแพทย์ไม่หักเงิน | ลาป่วยไม่มีใบรับรองแพทย์หักรายวัน | ลาป่วยครึ่งวันหักครึ่งวัน</div><br>
+<button onclick="fillDefaultTime()">เติมเวลาเริ่มต้นทั้งเดือน</button> <span id="timeLockText"></span>
+<button onclick="renderPayslip();showTab('payroll')">ดูสลิปหลังบันทึกเวลา</button><br><br>
+<div class="summary">
+  <div>วันทำงาน: <b id="sumDays">0</b></div>
+  <div>ชั่วโมงรวม: <b id="sumHours">0</b></div>
+  <div>สายรวม: <b id="sumLate">0</b> นาที</div>
+  <div>หักมาสาย: <b id="sumLateMoney">0.00</b> บาท</div>
+  <div>OT รวม: <b id="sumOT">0</b> ชม.</div>
+</div><br>
+<table id="timeTable"></table>
+</section>
+
+<section id="withdraw" class="tab card hidden">
+<h2>เบิกเงินเงิน</h2>
+<div class="card" style="background:#f8fff6">
+  <b>กำลังบันทึกให้พนักงาน:</b> <span id="wdEmpName" class="red">-</span>
+  <div class="small">บันทึกเฉพาะเงินที่พนักงานเบิกล่วงหน้า แยกตามพนักงานและเดือน</div>
+</div>
+<div class="grid">
+  <div><label>วันที่</label><input id="wdDate" type="date"></div>
+  <div><label>รายการ</label><select id="wdType"><option>เบิกเงิน</option></select></div>
+  <div><label>จำนวนเงิน</label><input id="wdAmount" type="number" value="0"></div>
+  <div><label>หมายเหตุ</label><input id="wdNote"></div>
+</div><br>
+<button onclick="addWithdraw()">เพิ่มรายการ</button><br><br>
+<table id="wdTable"></table>
+</section>
+
+<section id="payroll" class="tab card hidden">
+<h2 class="no-print">สลิปเงินเดือน</h2>
+<div class="card no-print" style="background:#f8fff6">
+  <b>ดูสลิปย้อนหลัง</b>
+  <div class="grid">
+    <div>
+      <label>เดือนสลิปย้อนหลัง</label>
+      <div class="month-picker-wrap">
+        <div id="payMonthDisplay" class="month-display" onclick="togglePayMonthPanel()">มิถุนายน 2569</div>
+        <div id="payMonthPanel" class="month-panel hidden">
+          <div class="month-year">
+            <button onclick="changePayPickerYear(-1)">‹</button>
+            <b id="payPickerYearText">2569</b>
+            <button onclick="changePayPickerYear(1)">›</button>
+          </div>
+          <div id="payMonthGrid" class="month-grid"></div>
+          <div class="month-actions">
+            <span onclick="clearPayMonthPanel()">Clear</span>
+            <span onclick="setPayThisMonth()">เดือนนี้</span>
+          </div>
+        </div>
+      </div>
+      <input type="month" id="payMonthPick" onchange="changePayrollMonth(this.value)" style="display:none">
+    </div>
+    <div><label>พนักงาน</label><input id="payEmpName" disabled></div>
+    <div style="align-self:end"><button onclick="renderPayslip()">คำนวณ/ดูสลิป</button></div>
+    <div style="align-self:end"><button class="yellow" onclick="window.print()">พิมพ์ / บันทึก PDF</button></div>
+  </div><br>
+  <div id="payHistoryBtns"></div>
+  <hr>
+  <div>
+    <b>ปิดงวดเงินเดือน</b>
+    <div class="small">เมื่อปิดงวดแล้ว ระบบจะล็อกการแก้ไขข้อมูลเวลาและเบิกเงิน/หักของเดือนนี้</div>
+    <br>
+    <button class="danger" onclick="closePayrollMonth()">ปิดงวดเดือนนี้</button>
+    <button class="secondary" onclick="openPayrollMonth()">ปลดล็อกงวดนี้</button>
+    <span id="lockStatus"></span>
+  </div>
+</div>
+<div id="payslip"></div>
+</section>
+
+
+<section id="report" class="tab card hidden">
+<h2>รายงานรวมประจำเดือน</h2>
+<div class="small">สรุปยอดรวมของพนักงานทุกคนตามเดือนที่เลือก</div>
+<br>
+<button onclick="renderReport()">รีเฟรชรายงาน</button>
+<br><br>
+<div id="reportContent"></div>
+</section>
+
+
+<section id="yearlyTime" class="tab card hidden">
+<h2>สรุปเวลา (รายปี)</h2>
+<div class="small">ดูภาพรวมเวลาทำงานของพนักงานที่เลือก แยกตามเดือนตลอดทั้งปี</div>
+<br>
+<div class="grid">
+  <div>
+    <label>เลือกปี</label>
+    <select id="yearPick" onchange="renderYearlyTime()"></select>
+  </div>
+  <div>
+    <label>พนักงาน</label>
+    <input id="yearEmpName" disabled>
+  </div>
+  <div style="align-self:end">
+    <button onclick="renderYearlyTime()">รีเฟรชข้อมูล</button>
+  </div>
+  <div style="align-self:end">
+    <button class="yellow" onclick="window.print()">พิมพ์ / บันทึก PDF</button>
+  </div>
+</div>
+<br>
+<div id="yearlySummary"></div>
+<br>
+<table id="yearlyTable"></table>
+</section>
+
+</main>
+</div>
+
+<script>
+let data=JSON.parse(localStorage.getItem('akPayrollData')||'{"company":{"name":"บริษัท เอเคมีเดีย จำกัด"},"employees":[],"times":{},"withdraws":{},"closedMonths":{}}');
+if(!data.closedMonths)data.closedMonths={};
+let selectedEmp=data.employees[0]?.id||null;
+const $=id=>document.getElementById(id);
+function save(){localStorage.setItem('akPayrollData',JSON.stringify(data));renderAll()}
+function ym(){return $('monthPick').value}
+function money(n){return Number(n||0).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function todayYM(){return new Date().toISOString().slice(0,7)}
+function daysInMonth(){let [y,m]=ym().split('-').map(Number);return new Date(y,m,0).getDate()}
+function emp(){return data.employees.find(e=>e.id===selectedEmp)}
+function timeKey(){return selectedEmp+'_'+ym()}
+function wdKey(){return selectedEmp+'_'+ym()}
+function isClosed(){
+ return !!data.closedMonths[ym()];
+}
+function closePayrollMonth(){
+ if(!ym())return;
+ if(confirm('ต้องการปิดงวด '+thMonthYear()+' ใช่ไหม? หลังปิดงวดจะล็อกการแก้ไขข้อมูลเดือนนี้')){
+   data.closedMonths[ym()]=true;
+   save();
+ }
+}
+function openPayrollMonth(){
+ if(!ym())return;
+ if(confirm('ต้องการปลดล็อกงวด '+thMonthYear()+' ใช่ไหม?')){
+   delete data.closedMonths[ym()];
+   save();
+ }
+}
+
+function workingDaysInMonth(){
+ let count=0;
+ for(let d=1;d<=daysInMonth();d++){
+  let date=ym()+'-'+String(d).padStart(2,'0');
+  let dow=new Date(date+'T00:00:00').getDay();
+  if(dow!==0)count++;
+ }
+ return count || 26;
+}
+function dayRate(e){
+ if(!e)return 0;
+ if(e.type==='daily') return Number(e.dailyRate||0);
+ return Number(e.monthlySalary||0)/workingDaysInMonth();
+}
+function lockedAlert(){
+ alert('เดือนนี้ปิดงวดเงินเดือนแล้ว ไม่สามารถแก้ไขข้อมูลได้');
+}
+
+function recs(){let k=timeKey(); if(!data.times[k])data.times[k]={}; return data.times[k]}
+function normalizeTime(t){
+ t=(t||'00:00').toString().trim();
+ if(/^\d{1,2}:\d{2}$/.test(t)){let [h,m]=t.split(':');return String(parseInt(h,10)).padStart(2,'0')+':'+m;}
+ return null;
+}
+function min(t){
+ t=(t||'00:00').toString().trim();
+ let p=t.split(':');
+ let h=parseInt(p[0]||0,10);
+ let m=parseInt(p[1]||0,10);
+ if(isNaN(h))h=0;if(isNaN(m))m=0;
+ return h*60+m;
+}
+const thMonths=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+const thShort=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+function thDate(dateStr,short=false){let d=new Date(dateStr+'T00:00:00');return d.getDate()+' '+(short?thShort[d.getMonth()]:thMonths[d.getMonth()])+' '+(d.getFullYear()+543)}
+function thMonthYear(v=ym()){let [y,m]=v.split('-').map(Number);return thMonths[m-1]+' '+(y+543)}
+
+let pickerYear = new Date().getFullYear();
+function monthDisplayTH(v=ym()){
+ if(!v)return '';
+ let [y,m]=v.split('-').map(Number);
+ return thMonths[m-1]+' '+(y+543);
+}
+function renderMonthPicker(){
+ if(!$('monthGrid') || !$('monthPick')) return;
+ let currentVal=$('monthPick').value || todayYM();
+ let [cy,cm]=currentVal.split('-').map(Number);
+ if(!pickerYear) pickerYear=cy;
+ $('pickerYearText').innerText=pickerYear+543;
+ let html='';
+ for(let m=1;m<=12;m++){
+   let val=`${pickerYear}-${String(m).padStart(2,'0')}`;
+   html+=`<div class="month-item ${val===currentVal?'active':''}" onclick="selectThaiMonth('${val}')">${thShort[m-1]}</div>`;
+ }
+ $('monthGrid').innerHTML=html;
+ if($('monthDisplay')) $('monthDisplay').innerText=monthDisplayTH(currentVal);
+ if($('monthEngText')) $('monthEngText').innerText=monthDisplayTH(currentVal);
+}
+function toggleMonthPanel(){
+ $('monthPanel').classList.toggle('hidden');
+ renderMonthPicker();
+}
+function selectThaiMonth(v){
+ $('monthPick').value=v;
+ pickerYear=parseInt(v.split('-')[0],10);
+ $('monthPanel').classList.add('hidden');
+ renderAll();
+}
+function changePickerYear(step){
+ pickerYear+=step;
+ renderMonthPicker();
+}
+function setThisMonth(){
+ $('monthPick').value=todayYM();
+ pickerYear=new Date().getFullYear();
+ $('monthPanel').classList.add('hidden');
+ renderAll();
+}
+function clearMonthPanel(){
+ $('monthPick').value=todayYM();
+ pickerYear=new Date().getFullYear();
+ $('monthPanel').classList.add('hidden');
+ renderAll();
+}
+document.addEventListener('click',function(e){
+ let wrap=document.querySelector('.month-picker-wrap');
+ if(wrap && !wrap.contains(e.target) && $('monthPanel')) $('monthPanel').classList.add('hidden');
+});
+
+let payPickerYear = new Date().getFullYear();
+function renderPayMonthPicker(){
+ if(!$('payMonthGrid') || !$('payMonthPick')) return;
+ let currentVal=$('payMonthPick').value || ym() || todayYM();
+ let [cy,cm]=currentVal.split('-').map(Number);
+ if(!payPickerYear) payPickerYear=cy;
+ $('payPickerYearText').innerText=payPickerYear+543;
+ let html='';
+ for(let m=1;m<=12;m++){
+   let val=`${payPickerYear}-${String(m).padStart(2,'0')}`;
+   html+=`<div class="month-item ${val===currentVal?'active':''}" onclick="selectPayThaiMonth('${val}')">${thShort[m-1]}</div>`;
+ }
+ $('payMonthGrid').innerHTML=html;
+ if($('payMonthDisplay')) $('payMonthDisplay').innerText=monthDisplayTH(currentVal);
+}
+function togglePayMonthPanel(){
+ $('payMonthPanel').classList.toggle('hidden');
+ renderPayMonthPicker();
+}
+function selectPayThaiMonth(v){
+ $('payMonthPick').value=v;
+ payPickerYear=parseInt(v.split('-')[0],10);
+ $('payMonthPanel').classList.add('hidden');
+ changePayrollMonth(v);
+}
+function changePayPickerYear(step){
+ payPickerYear+=step;
+ renderPayMonthPicker();
+}
+function setPayThisMonth(){
+ $('payMonthPick').value=todayYM();
+ payPickerYear=new Date().getFullYear();
+ $('payMonthPanel').classList.add('hidden');
+ changePayrollMonth(todayYM());
+}
+function clearPayMonthPanel(){
+ $('payMonthPick').value=todayYM();
+ payPickerYear=new Date().getFullYear();
+ $('payMonthPanel').classList.add('hidden');
+ changePayrollMonth(todayYM());
+}
+document.addEventListener('click',function(e){
+ let wraps=document.querySelectorAll('.month-picker-wrap');
+ let inside=false;
+ wraps.forEach(w=>{ if(w.contains(e.target)) inside=true; });
+ if(!inside && $('payMonthPanel')) $('payMonthPanel').classList.add('hidden');
+});
+
+
+
+const enMonths=['January','February','March','April','May','June','July','August','September','October','November','December'];
+function enMonthYear(v=ym()){
+ let [y,m]=v.split('-').map(Number);
+ return enMonths[m-1]+' '+y;
+}
+
+function showTab(id){document.querySelectorAll('.tab').forEach(x=>x.classList.add('hidden'));$(id).classList.remove('hidden');renderAll()}
+$('monthPick').value=todayYM();
+
+function saveCompany(){
+ data.company={name:$('companyName').value||'บริษัท เอเคมีเดีย จำกัด',tax:$('companyTax').value,tel:$('companyTel').value,address:$('companyAddress').value};
+ save();
+}
+function loadCompany(){
+ $('companyName').value=data.company?.name||'บริษัท เอเคมีเดีย จำกัด';
+ $('companyTax').value=data.company?.tax||'';
+ $('companyTel').value=data.company?.tel||'';
+ $('companyAddress').value=data.company?.address||'';
+}
+function toggleSalaryFields(){
+ let type=$('salaryType').value;
+ $('monthlySalary').disabled=type==='daily';
+ $('dailyRate').disabled=type==='monthly';
+}
+function clearEmpForm(){
+ selectedEmp=null;
+ $('empName').value='';$('empCode').value='';$('empPos').value='';$('empDept').value='แอดมิน';
+ $('salaryType').value='monthly';$('monthlySalary').value=13000;$('dailyRate').value=500;$('dailySickCertPaid').value='paid';
+ $('stdIn').value='08:30';$('stdOut').value='17:30';$('ssoEnabled').value='yes';$('lateRate').value=1;toggleSalaryFields();renderAll();
+}
+function saveEmployee(){
+ let id=$('empCode').value.trim()||Date.now().toString();
+ let type=$('salaryType').value, monthly=+$('monthlySalary').value||0, daily=+$('dailyRate').value||0;
+ if(type==='monthly' && monthly<=0){alert('กรุณากรอกเงินเดือนรายเดือน');return}
+ if(type==='daily' && daily<=0){alert('กรุณากรอกค่าแรงรายวัน');return}
+ let e={id,name:$('empName').value.trim()||'พนักงานใหม่',code:id,pos:$('empPos').value.trim(),dept:$('empDept').value,type,monthlySalary:monthly,dailyRate:daily,dailySickCertPaid:$('dailySickCertPaid').value,stdIn:$('stdIn').value||'08:30',stdOut:$('stdOut').value||'17:30',ssoEnabled:$('ssoEnabled').value,lateRate:+$('lateRate').value||0};
+ let i=data.employees.findIndex(x=>x.id===selectedEmp||x.id===id);
+ if(i>-1)data.employees[i]=e;else data.employees.push(e);
+ selectedEmp=e.id;save();
+}
+function deleteEmployee(){
+ if(!selectedEmp)return;
+ if(confirm('ลบพนักงานนี้?')){data.employees=data.employees.filter(e=>e.id!==selectedEmp);selectedEmp=data.employees[0]?.id||null;save()}
+}
+function loadEmpForm(){
+ let e=emp(); if(!e)return;
+ $('empName').value=e.name;$('empCode').value=e.code||e.id;$('empPos').value=e.pos||'';$('empDept').value=e.dept||'แอดมิน';
+ $('salaryType').value=e.type||'monthly';$('monthlySalary').value=e.monthlySalary||13000;$('dailyRate').value=e.dailyRate||500;$('dailySickCertPaid').value=e.dailySickCertPaid||'paid';
+ $('stdIn').value=e.stdIn||'08:30';$('stdOut').value=e.stdOut||'17:30';$('ssoEnabled').value=e.ssoEnabled||'yes';$('lateRate').value=e.lateRate??1;toggleSalaryFields();
+}
+
+function createMonthForAll(){
+ if(!ym()){alert('กรุณาเลือกเดือนก่อน');return}
+ if(isClosed()){lockedAlert();return}
+ if(data.employees.length===0){alert('กรุณาเพิ่มพนักงานก่อน');return}
+ if(!confirm('ต้องการสร้างตารางเวลาทำงาน '+thMonthYear()+' ให้พนักงานทั้งหมดหรือไม่?'))return;
+ data.employees.forEach(e=>{
+   let k=e.id+'_'+ym();
+   if(!data.times[k])data.times[k]={};
+   for(let d=1;d<=daysInMonth();d++){
+     let date=ym()+'-'+String(d).padStart(2,'0');
+     if(!data.times[k][date]){
+       data.times[k][date]={in:e.stdIn||'08:30',out:e.stdOut||'17:30',ot:0,status:'ปกติ',note:''};
+     }
+   }
+ });
+ localStorage.setItem('akPayrollData',JSON.stringify(data));
+ alert('สร้างตารางเวลาของเดือน '+thMonthYear()+' เรียบร้อยแล้ว');
+ renderAll();
+}
+
+function fillDefaultTime(){
+ if(isClosed()){lockedAlert();return}
+ let e=emp();if(!e){alert('กรุณาเลือกพนักงานก่อน');return}
+ let r=recs();
+ for(let d=1;d<=daysInMonth();d++){
+  let date=ym()+'-'+String(d).padStart(2,'0');
+  if(!r[date])r[date]={in:e.stdIn||'08:30',out:e.stdOut||'17:30',ot:0,status:'ปกติ',note:''};
+ }
+ save();
+}
+function setTime(date,field,val){
+ if(isClosed()){lockedAlert();renderAll();return}
+ let e=emp(),r=recs();
+ if(!r[date])r[date]={in:e.stdIn||'08:30',out:e.stdOut||'17:30',ot:0,status:'ปกติ',note:''};
+ if(field==='in'||field==='out'){let nt=normalizeTime(val);if(!nt){alert('กรุณากรอกเวลาเป็นรูปแบบ 08:30');renderAll();return}else val=nt;}
+ r[date][field]=field==='ot'?parseFloat(val||0):val;
+ save();
+}
+function renderTime(){
+ let e=emp(); if(!e){$('timeTable').innerHTML='กรุณาเพิ่มพนักงานก่อน';return}
+ let lock=isClosed();
+ let r=recs(), rows='<tr><th>วันที่</th><th>เข้า</th><th>ออก</th><th>ชั่วโมง</th><th>OT ×1.5</th><th>สาย</th><th>หักสาย</th><th>หักลา/ป่วย/ขาด</th><th>สถานะ</th><th>หมายเหตุ</th></tr>';
+ let totalH=0,totalLate=0,totalLateMoney=0,totalOT=0,work=0;
+ for(let d=1;d<=daysInMonth();d++){
+  let date=ym()+'-'+String(d).padStart(2,'0');
+  let v=r[date]||{in:e.stdIn||'08:30',out:e.stdOut||'17:30',ot:0,status:'ปกติ',note:''};
+  let dow=new Date(date+'T00:00:00').getDay(), isSun=dow===0;
+  let isWorkStatus=(v.status==='ปกติ'||v.status==='ทำงานวันหยุด');
+  let h=Math.max(0,(min(v.out)-min(v.in))/60-1);
+  let late=isWorkStatus ? Math.max(0,min(v.in)-min(e.stdIn||'08:30')) : 0;
+  let lateMoney=late*(e.lateRate||0);
+  let ot=parseFloat(v.ot||0);
+  let leaveDeduct=0;
+  if(v.status==='ลากิจ'||v.status==='ขาดงาน'||v.status==='ลาป่วยไม่มีใบรับรองแพทย์') leaveDeduct=dayRate(e);
+  if(v.status==='ลากิจครึ่งวัน'||v.status==='ขาดงานครึ่งวัน'||v.status==='ลาป่วยไม่มีใบรับรองแพทย์ครึ่งวัน') leaveDeduct=dayRate(e)/2;
+  if(isWorkStatus){work++;totalH+=h;totalLate+=late;totalLateMoney+=lateMoney}
+  totalOT+=ot;
+  rows+=`<tr style="${isSun?'background:#eee':''}">
+  <td>${thDate(date,true)}</td>
+  <td><input ${lock?'disabled':''} type="text" pattern="[0-9]{2}:[0-9]{2}" placeholder="08:30" value="${v.in}" onchange="setTime('${date}','in',this.value)"></td>
+  <td><input ${lock?'disabled':''} type="text" pattern="[0-9]{2}:[0-9]{2}" placeholder="17:30" value="${v.out}" onchange="setTime('${date}','out',this.value)"></td>
+  <td>${h.toFixed(2)}</td>
+  <td><input ${lock?'disabled':''} type="number" step="0.5" min="0" value="${ot}" onchange="setTime('${date}','ot',this.value)"></td>
+  <td>${late} นาที</td>
+  <td>${money(lateMoney)}</td>
+  <td>${money(leaveDeduct)}</td>
+  <td><select ${lock?'disabled':''} onchange="setTime('${date}','status',this.value)">
+    ${['ปกติ','ทำงานวันหยุด','ลาป่วยมีใบรับรองแพทย์','ลาป่วยไม่มีใบรับรองแพทย์','ลาป่วยไม่มีใบรับรองแพทย์ครึ่งวัน','ลากิจ','ลากิจครึ่งวัน','ขาดงาน','ขาดงานครึ่งวัน','วันหยุด'].map(s=>`<option ${v.status===s?'selected':''}>${s}</option>`).join('')}
+  </select></td>
+  <td><input ${lock?'disabled':''} value="${v.note||''}" onchange="setTime('${date}','note',this.value)"></td></tr>`;
+ }
+ $('timeTable').innerHTML=(lock?'<tr><td colspan="10"><div class="locked-note">เดือนนี้ปิดงวดแล้ว แก้ไขข้อมูลไม่ได้</div></td></tr>':'')+rows;
+ $('sumDays').innerText=work;
+ $('sumHours').innerText=totalH.toFixed(2);
+ $('sumLate').innerText=totalLate;
+ if($('sumLateMoney'))$('sumLateMoney').innerText=money(totalLateMoney);
+ $('sumOT').innerText=totalOT.toFixed(2);
+ if($('timeLockText'))$('timeLockText').innerHTML=lock?'<span class="locked-badge">ปิดงวดแล้ว</span>':'';
+}
+function addWithdraw(){
+ if(isClosed()){lockedAlert();return}
+ let e=emp();if(!e){alert('กรุณาเลือกพนักงานก่อน');return}
+ let k=wdKey();if(!data.withdraws[k])data.withdraws[k]=[];
+ data.withdraws[k].push({date:$('wdDate').value,type:$('wdType').value,amount:+$('wdAmount').value||0,note:$('wdNote').value});
+ $('wdAmount').value=0;$('wdNote').value='';save();
+}
+function renderWd(){
+ let e=emp();$('wdEmpName').innerText=e?e.name:'-';
+ if(!e){$('wdTable').innerHTML='';return}
+ let arr=data.withdraws[wdKey()]||[];
+ let html='<tr><th>พนักงาน</th><th>วันที่</th><th>รายการ</th><th>จำนวน</th><th>หมายเหตุ</th><th>ลบ</th></tr>';
+ if(isClosed())html='<tr><td colspan="6"><div class="locked-note">เดือนนี้ปิดงวดแล้ว แก้ไขเบิกเงิน/หักไม่ได้</div></td></tr>'+html;
+ if(arr.length===0)html+='<tr><td colspan="6">ยังไม่มีรายการ</td></tr>';
+ arr.forEach((x,i)=>html+=`<tr><td>${e.name}</td><td>${x.date?thDate(x.date,true):''}</td><td>${x.type}</td><td>${money(x.amount)}</td><td>${x.note||''}</td><td><button class="danger" onclick="if(isClosed()){lockedAlert()}else{data.withdraws[wdKey()].splice(${i},1);save()}">ลบ</button></td></tr>`);
+ $('wdTable').innerHTML=html;
+}
+function calc(){
+ let e=emp(),r=recs(),work=0,late=0,ot=0;
+ let leaveDays=0,absentDays=0,sickCertDays=0,sickNoCertDays=0,holidayWorkDays=0;
+ let leaveDeduct=0,absentDeduct=0,sickNoCertDeduct=0;
+ for(let d=1;d<=daysInMonth();d++){
+  let date=ym()+'-'+String(d).padStart(2,'0'), v=r[date]||{in:e.stdIn||'08:30',out:e.stdOut||'17:30',ot:0,status:'ปกติ'};
+  let dow=new Date(date+'T00:00:00').getDay();
+  let isWorkStatus=(v.status==='ปกติ'||v.status==='ทำงานวันหยุด');
+  if(isWorkStatus){
+   work++;
+   if(v.status==='ทำงานวันหยุด')holidayWorkDays++;
+   late+=Math.max(0,min(v.in)-min(e.stdIn||'08:30'));
+  }
+  if(v.status==='ลากิจ'){leaveDays++;leaveDeduct+=dayRate(e)}
+  if(v.status==='ลากิจครึ่งวัน'){leaveDays+=0.5;leaveDeduct+=dayRate(e)/2}
+  if(v.status==='ขาดงาน'){absentDays++;absentDeduct+=dayRate(e)}
+  if(v.status==='ขาดงานครึ่งวัน'){absentDays+=0.5;absentDeduct+=dayRate(e)/2}
+  if(v.status==='ลาป่วยไม่มีใบรับรองแพทย์'){sickNoCertDays++;sickNoCertDeduct+=dayRate(e)}
+  if(v.status==='ลาป่วยไม่มีใบรับรองแพทย์ครึ่งวัน'){sickNoCertDays+=0.5;sickNoCertDeduct+=dayRate(e)/2}
+  if(v.status==='ลาป่วยมีใบรับรองแพทย์'){
+   sickCertDays++;
+   if(e.type==='daily' && e.dailySickCertPaid==='paid') work++;
+  }
+  ot+=parseFloat(v.ot||0);
+ }
+ let base=e.type==='monthly'?Number(e.monthlySalary||0):(Number(e.dailyRate||0)*work);
+ let otRate=(e.type==='monthly'?Number(e.monthlySalary||0)/workingDaysInMonth()/8:Number(e.dailyRate||0)/8);
+ let otPay=otRate*1.5*ot;
+ let sso=(e.ssoEnabled==='no')?0:Math.min(base*5/100,750);
+ let lateDeduct=late*(e.lateRate||0);
+ let arr=data.withdraws[wdKey()]||[];
+ let wd=arr.filter(x=>x.type==='รายการเบิก'||x.type==='เบิกเงิน').reduce((a,b)=>a+Number(b.amount||0),0);
+ let gross=base+otPay;
+ let totalLeaveDeduct=leaveDeduct+absentDeduct+sickNoCertDeduct;
+ let totalDeduct=sso+lateDeduct+wd+totalLeaveDeduct;
+ return {
+   work,late,ot,holidayWorkDays,
+   leaveDays,absentDays,sickCertDays,sickNoCertDays,
+   base,otPay,gross,
+   sso,lateDeduct,wd,
+   leaveDeduct,absentDeduct,sickNoCertDeduct,totalLeaveDeduct,
+   totalDeduct,net:gross-totalDeduct
+ };
+}
+function slipNo(){return 'AK-'+ym().replace('-','')+'-'+(emp()?.code||'001')}
+function renderPayslip(){
+ let e=emp();if(!e){$('payslip').innerHTML='กรุณาเลือกพนักงานก่อน';return}
+ let c=calc(), last=ym()+'-'+String(daysInMonth()).padStart(2,'0'), company=data.company||{};
+ $('payslip').innerHTML=`<div class="payslip">
+ <div class="pay-head">
+  <div>
+   <b>${company.name||'บริษัท เอเคมีเดีย จำกัด'}</b><br>
+   ${company.address||''}<br>
+   ${company.tax?'เลขผู้เสียภาษี : '+company.tax:''}<br>
+   ${company.tel?'โทร : '+company.tel:''}
+  </div>
+  <div>
+   <div class="pay-title">สลิปเงินเดือน (PAY SLIP)</div><br>
+   เลขที่สลิป : ${slipNo()}<br>
+   ประจำเดือน : ${thMonthYear()}<br>
+   วันที่จ่าย : ${thDate(last)}
+  </div>
+ </div>
+ <hr>
+
+ <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+  <div>
+   ชื่อพนักงาน : <b>${e.name}</b><br>
+   รหัสพนักงาน : ${e.code||e.id}<br>
+   ตำแหน่ง : ${e.pos||'-'}<br>
+   แผนก : ${e.dept||'-'}
+  </div>
+  <div>
+   ประเภทค่าแรง : ${e.type==='daily'?'รายวัน':'รายเดือน'}<br>
+   อัตราค่าแรง : ${e.type==='daily'?money(e.dailyRate)+' บาท/วัน':money(e.monthlySalary)+' บาท/เดือน'}<br>
+   วันทำงาน : ${c.work} วัน<br>
+   OT : ${c.ot.toFixed(2)} ชั่วโมง
+  </div>
+ </div>
+
+ <div class="paybox">
+  <div>
+   <b>รายรับ</b>
+   <div class="line"><span>${e.type==='daily'?'ค่าแรงรายวันรวม':'เงินเดือน'}</span><span>${money(c.base)}</span></div>
+   <div class="line"><span>ค่า OT ×1.5</span><span>${money(c.otPay)}</span></div>
+   <div class="line red"><span>รวมรายรับ</span><span>${money(c.gross)}</span></div>
+  </div>
+
+  <div>
+   <b>รายการหัก</b>
+   <div class="line"><span>ประกันสังคม 5% สูงสุด 750</span><span>${money(c.sso)}</span></div>
+   <div class="line"><span>มาสาย ${c.late} นาที</span><span>${money(c.lateDeduct)}</span></div>
+   <div class="line"><span>เบิกเงินล่วงหน้า</span><span>${money(c.wd)}</span></div>
+   <div class="line"><span>ลาป่วยไม่มีใบรับรองแพทย์ ${c.sickNoCertDays} วัน</span><span>${money(c.sickNoCertDeduct)}</span></div>
+   <div class="line"><span>ลากิจ ${c.leaveDays} วัน</span><span>${money(c.leaveDeduct)}</span></div>
+   <div class="line"><span>ขาดงาน ${c.absentDays} วัน</span><span>${money(c.absentDeduct)}</span></div>
+   <div class="line red"><span>รวมรายการหัก</span><span>${money(c.totalDeduct)}</span></div>
+  </div>
+ </div>
+
+ <div class="card" style="margin-top:12px;background:#fafafa">
+  <b>ข้อมูลการทำงาน</b><br>
+  วันทำงาน : ${c.work} วัน | ทำงานวันหยุด : ${c.holidayWorkDays} วัน |
+  OT : ${c.ot.toFixed(2)} ชั่วโมง |
+  มาสาย : ${c.late} นาที<br>
+  ลาป่วยมีใบรับรองแพทย์ : ${c.sickCertDays} วัน |
+  ลาป่วยไม่มีใบรับรองแพทย์ : ${c.sickNoCertDays} วัน |
+  ลากิจ : ${c.leaveDays} วัน |
+  ขาดงาน : ${c.absentDays} วัน
+ </div>
+
+ <h2 class="right">รับสุทธิ <span class="red">${money(c.net)}</span> บาท</h2>
+ หมายเหตุ : <div class="note"></div>
+ <p class="small" style="text-align:center">ข้อมูลเงินเดือนและค่าจ้างเป็นข้อมูลส่วนบุคคล</p>
+ </div>`;
+}
+function changePayrollMonth(val){if(!val)return;$('monthPick').value=val;renderAll();showTab('payroll')}
+function getPayrollMonths(){
+ let months=new Set([ym()]);
+ Object.keys(data.times||{}).forEach(k=>months.add(k.split('_').pop()));
+ Object.keys(data.withdraws||{}).forEach(k=>months.add(k.split('_').pop()));
+ return Array.from(months).sort().reverse();
+}
+function renderPayrollHistory(){
+ if($('payMonthPick')) $('payMonthPick').value=ym();
+ if($('payEmpName')) $('payEmpName').value=emp()?emp().name:'-';
+ renderPayMonthPicker();
+ if($('lockStatus')) $('lockStatus').innerHTML=isClosed()?'<span class="locked-badge">ปิดงวดแล้ว</span>':'<span class="small">ยังไม่ปิดงวด</span>';
+ if(!$('payHistoryBtns')) return;
+ $('payHistoryBtns').innerHTML='<b>เดือนที่มีข้อมูล:</b> '+getPayrollMonths().map(m=>`<button class="${m===ym()?'yellow':'secondary'}" onclick="changePayrollMonth('${m}')">${monthDisplayTH(m)}</button>`).join('');
+}
+function renderEmpList(){
+ const depts=['แอดมิน','ประกอบ','กราฟิก','แมทชีน','ทีมช่าง'];
+ let html='';
+ depts.forEach(dept=>{
+   let group=data.employees.filter(e=>(e.dept||'แอดมิน')===dept);
+   html+=`<div style="margin:10px 0 6px;padding:7px 9px;background:#2f5d36;color:white;border-radius:8px;font-weight:bold">${dept} <span style="float:right">${group.length} คน</span></div>`;
+   if(group.length===0){
+     html+=`<div class="small" style="padding:4px 8px;color:#999">ยังไม่มีรายชื่อ</div>`;
+   }
+   group.forEach(e=>{
+     html+=`<div class="emp ${e.id===selectedEmp?'active':''}" onclick="selectedEmp='${e.id}';renderAll()">
+       <b>${e.name}</b><br>
+       <span class="small">${e.pos||'-'} | ${e.type==='daily'?'รายวัน':'รายเดือน'}</span>
+     </div>`;
+   });
+ });
+ $('empList').innerHTML=html;
+}
+function calcForEmployee(empId){
+ let old=selectedEmp;
+ selectedEmp=empId;
+ let result=calc();
+ selectedEmp=old;
+ return result;
+}
+function renderReport(){
+ if(!$('reportContent'))return;
+ let totals={employees:0,work:0,ot:0,late:0,gross:0,sso:0,withdraw:0,leaveDeduct:0,lateDeduct:0,totalDeduct:0,net:0};
+ let rows='';
+ data.employees.forEach(e=>{
+   totals.employees++;
+   let c=calcForEmployee(e.id);
+   totals.work+=c.work; totals.ot+=c.ot; totals.late+=c.late;
+   totals.gross+=c.gross; totals.sso+=c.sso; totals.withdraw+=c.wd;
+   totals.leaveDeduct+=c.totalLeaveDeduct; totals.lateDeduct+=c.lateDeduct;
+   totals.totalDeduct+=c.totalDeduct; totals.net+=c.net;
+   rows+=`<tr><td>${e.name}</td><td>${e.dept||'-'}</td><td>${c.work}</td><td>${c.ot.toFixed(2)}</td><td>${money(c.gross)}</td><td>${money(c.totalDeduct)}</td><td>${money(c.net)}</td></tr>`;
+ });
+ $('reportContent').innerHTML=`
+ <div class="report-box">
+  <div>พนักงานทั้งหมด<br><b>${totals.employees}</b> คน</div>
+  <div>วันทำงานรวม<br><b>${totals.work}</b> วัน</div>
+  <div>OT รวม<br><b>${totals.ot.toFixed(2)}</b> ชม.</div>
+  <div>มาสายรวม<br><b>${totals.late}</b> นาที</div>
+  <div>รายรับรวม<br><b>${money(totals.gross)}</b></div>
+  <div>ประกันสังคมรวม<br><b>${money(totals.sso)}</b></div>
+  <div>เบิกเงินรวม<br><b>${money(totals.withdraw)}</b></div>
+  <div>หักลา/ป่วย/ขาดรวม<br><b>${money(totals.leaveDeduct)}</b></div>
+  <div>หักมาสายรวม<br><b>${money(totals.lateDeduct)}</b></div>
+  <div>หักรวมทั้งหมด<br><b>${money(totals.totalDeduct)}</b></div>
+  <div>จ่ายสุทธิรวม<br><b>${money(totals.net)}</b></div>
+ </div>
+ <table><tr><th>พนักงาน</th><th>แผนก</th><th>วันทำงาน</th><th>OT</th><th>รายรับ</th><th>รายการหัก</th><th>รับสุทธิ</th></tr>${rows}</table>`;
+}
+
+
+function renderYearOptions(){
+ if(!$('yearPick')) return;
+ let now=new Date().getFullYear();
+ let years=new Set([now]);
+ Object.keys(data.times||{}).forEach(k=>{
+   let ymPart=k.split('_').pop();
+   if(ymPart && ymPart.includes('-')) years.add(parseInt(ymPart.split('-')[0],10));
+ });
+ let html='';
+ Array.from(years).filter(Boolean).sort((a,b)=>b-a).forEach(y=>{
+   html+=`<option value="${y}">${y+543}</option>`;
+ });
+ $('yearPick').innerHTML=html;
+ if(!$('yearPick').value) $('yearPick').value=now;
+}
+function calcTimeForMonth(empObj, ymVal){
+ let oldEmp=selectedEmp;
+ let oldMonth=$('monthPick').value;
+ selectedEmp=empObj.id;
+ $('monthPick').value=ymVal;
+ let r=recs();
+ let work=0,late=0,ot=0,leave=0,absent=0,sickCert=0,sickNoCert=0,holidayWork=0;
+ for(let d=1;d<=daysInMonth();d++){
+  let date=ymVal+'-'+String(d).padStart(2,'0');
+  let v=r[date]||null;
+  if(!v) continue;
+  if(v.status==='ปกติ'||v.status==='ทำงานวันหยุด'){
+    work++;
+    if(v.status==='ทำงานวันหยุด') holidayWork++;
+    late+=Math.max(0,min(v.in)-min(empObj.stdIn||'08:30'));
+  }
+  if(v.status==='ลากิจ') leave++;
+  if(v.status==='ลากิจครึ่งวัน') leave+=0.5;
+  if(v.status==='ขาดงาน') absent++;
+  if(v.status==='ขาดงานครึ่งวัน') absent+=0.5;
+  if(v.status==='ลาป่วยมีใบรับรองแพทย์') sickCert++;
+  if(v.status==='ลาป่วยไม่มีใบรับรองแพทย์') sickNoCert++;
+  if(v.status==='ลาป่วยไม่มีใบรับรองแพทย์ครึ่งวัน') sickNoCert+=0.5;
+  ot+=parseFloat(v.ot||0);
+ }
+ selectedEmp=oldEmp;
+ $('monthPick').value=oldMonth;
+ return {work,late,ot,leave,absent,sickCert,sickNoCert,holidayWork};
+}
+function renderYearlyTime(){
+ renderYearOptions();
+ let e=emp();
+ if(!e){
+   if($('yearlyTable')) $('yearlyTable').innerHTML='<tr><td>กรุณาเลือกพนักงานก่อน</td></tr>';
+   return;
+ }
+ let year=parseInt($('yearPick')?.value || new Date().getFullYear(),10);
+ if($('yearEmpName')) $('yearEmpName').value=e.name;
+ let totals={work:0,late:0,ot:0,leave:0,absent:0,sickCert:0,sickNoCert:0,holidayWork:0};
+ let rows='<tr><th>เดือน</th><th>วันทำงาน</th><th>ทำงานวันหยุด</th><th>OT</th><th>มาสาย</th><th>ลากิจ</th><th>ลาป่วยมีใบรับรอง</th><th>ลาป่วยไม่มีใบรับรอง</th><th>ขาดงาน</th></tr>';
+ for(let m=1;m<=12;m++){
+   let ymVal=year+'-'+String(m).padStart(2,'0');
+   let c=calcTimeForMonth(e, ymVal);
+   Object.keys(totals).forEach(k=>totals[k]+=c[k]);
+   rows+=`<tr>
+    <td>${thMonths[m-1]} ${year+543}</td>
+    <td>${c.work}</td>
+    <td>${c.holidayWork}</td>
+    <td>${c.ot.toFixed(2)}</td>
+    <td>${c.late} นาที</td>
+    <td>${c.leave}</td>
+    <td>${c.sickCert}</td>
+    <td>${c.sickNoCert}</td>
+    <td>${c.absent}</td>
+   </tr>`;
+ }
+ rows+=`<tr>
+  <th>รวมทั้งปี</th>
+  <th>${totals.work}</th>
+  <th>${totals.holidayWork}</th>
+  <th>${totals.ot.toFixed(2)}</th>
+  <th>${totals.late} นาที</th>
+  <th>${totals.leave}</th>
+  <th>${totals.sickCert}</th>
+  <th>${totals.sickNoCert}</th>
+  <th>${totals.absent}</th>
+ </tr>`;
+ if($('yearlyTable')) $('yearlyTable').innerHTML=rows;
+ if($('yearlySummary')) $('yearlySummary').innerHTML=`
+  <div class="report-box">
+    <div>พนักงาน<br><b>${e.name}</b></div>
+    <div>ปี<br><b>${year+543}</b></div>
+    <div>วันทำงานรวม<br><b>${totals.work}</b> วัน</div>
+    <div>ทำงานวันหยุด<br><b>${totals.holidayWork}</b> วัน</div>
+    <div>OT รวม<br><b>${totals.ot.toFixed(2)}</b> ชม.</div>
+    <div>มาสายรวม<br><b>${totals.late}</b> นาที</div>
+    <div>ลากิจรวม<br><b>${totals.leave}</b> วัน</div>
+    <div>ลาป่วยมีใบรับรอง<br><b>${totals.sickCert}</b> วัน</div>
+    <div>ลาป่วยไม่มีใบรับรอง<br><b>${totals.sickNoCert}</b> วัน</div>
+    <div>ขาดงานรวม<br><b>${totals.absent}</b> วัน</div>
+  </div>`;
+}
+
+function renderAll(){
+ if(!ym())$('monthPick').value=todayYM();
+ $('monthTitle').innerText='เดือน '+thMonthYear();
+ renderMonthPicker();
+ $('wdDate').value=ym()+'-01';
+ loadCompany();renderEmpList();loadEmpForm();renderTime();renderWd();renderPayrollHistory();renderPayslip();renderReport();renderYearOptions();renderYearlyTime();
+}
+renderAll();
+</script>
+</body>
+</html>
